@@ -218,9 +218,6 @@ export default {
       });
     },
     onClickParent() {
-      // const activeMenu = this.menuList.filter(item=>item.name===this.menusCheck).children.map(item => {
-      //   return item.name;
-      // });
       if (this.menusCheck && this.menusCheck.length) {
         const activeMenu = this.menusCheck
           .reduce((acc, menu) => {
@@ -231,8 +228,7 @@ export default {
           .map(item => {
             return [...item.children.map(item => item.name)];
           });
-        console.log(...activeMenu);
-        this.menuCheck = activeMenu;
+        this.menuCheck = activeMenu.join(",").split(",");
       } else {
         this.menusCheck = [];
         this.menuCheck = [];
