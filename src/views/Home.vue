@@ -1,47 +1,23 @@
 <template>
-  <section>
-    <input type="text" />
-    <div class="parent-menu" v-for="(menus, parent) in menuList" :key="parent">
-      <label :for="`menu${menus.id}`">
-        <input
-          type="checkbox"
-          :id="`menu${menus.id}`"
-          v-model="menusCheck"
-          :value="menus.name"
-          @change="onClickParent()"
-        />
-        {{ menus.name }}
-      </label>
-      <div
-        class="children-menu"
-        v-for="(menu, children) in menus.children"
-        :key="children"
-      >
-        <label :for="`menu${menu.id}`">
-          <input
-            type="checkbox"
-            :id="`menu${menu.id}`"
-            v-model="menuCheck"
-            :value="menu.name"
-          />
-          {{ menu.name }}
-        </label>
-      </div>
-    </div>
-  </section>
+  <div id="menus">
+    <h1>Default</h1>
+    <menu-picker :menus="menus" :menu-id="'menu1'" />
+    <h1>Disable</h1>
+    <menu-picker :menus="menus" :menu-id="'menu2'" disable-child />
+  </div>
 </template>
 
 <script>
 // @ is an alias to /src
-// import HelloWorld from "@/components/HelloWorld.vue";
+import MenuPicker from "@/components/MenuPicker.vue";
 
 export default {
   name: "Home",
   components: {
-    // HelloWorld
+    MenuPicker
   },
   data: () => ({
-    defaultList: [
+    menus: [
       {
         id: 9,
         name: "콜라",
@@ -178,75 +154,15 @@ export default {
         salePrice: null,
         order: 13
       }
-    ],
-    menuList: [],
-    menuCheck: [],
-    menusCheck: []
-  }),
-  created() {
-    this.menuList = this.setDefaultList();
-  },
-  methods: {
-    setDefaultList() {
-      const menuList = this.defaultList.reduce((acc, menu) => {
-        if (menu.parentId === null) {
-          const children = this.defaultList.filter(
-            list => list.parentId === menu.id
-          );
-          menu.children = [...children];
-          acc.push(menu);
-        }
-        return acc;
-      }, []);
-      const resultList = this.setSortList(menuList);
-      return resultList;
-    },
-    setSortList(list) {
-      return list.sort((prev, next) => {
-        if (next.children) {
-          this.setSortList(next.children);
-        }
-        if (prev.children) {
-          this.setSortList(prev.children);
-        }
-        const pOrder = prev.order;
-        const nOrder = next.order;
-        if (pOrder === nOrder) {
-          return prev.id - next.id;
-        }
-        return pOrder - nOrder;
-      });
-    },
-    onClickParent() {
-      if (this.menusCheck && this.menusCheck.length) {
-        const activeMenu = this.menusCheck
-          .reduce((acc, menu) => {
-            const result = this.menuList.filter(list => list.name === menu);
-            acc.push(...result);
-            return acc;
-          }, [])
-          .map(item => {
-            return [...item.children.map(item => item.name)];
-          });
-        this.menuCheck = activeMenu.join(",").split(",");
-      } else {
-        this.menusCheck = [];
-        this.menuCheck = [];
-      }
-    }
-  }
+    ]
+  })
 };
 </script>
 
-<style scoped>
-label {
-  cursor: pointer;
-}
-.parent-menu {
-  padding: 5px 10px;
-  text-align: left;
-}
-.children-menu {
-  padding: 5px 10px;
+<style>
+@import url("../assets/css/reset.css");
+
+#menus #menu1 {
+  z-index: 10;
 }
 </style>
