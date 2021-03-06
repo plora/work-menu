@@ -1,6 +1,10 @@
 <template>
   <section :id="menuId" class="select-menu">
-    <div class="list-menu" @click.prevent="onShowMenu">
+    <div
+      class="list-menu menu-arrow"
+      @click.prevent="onShowMenu"
+      :class="isMenu | filterArrow"
+    >
       {{ filterList | filterMenu }}
     </div>
     <div class="list-menu-wrap" v-show="isMenu">
@@ -9,13 +13,13 @@
         v-for="(menus, parent) in menuList"
         :key="parent"
       >
-        <label :for="`${menuId}-${menus.id}`">
+        <label :for="`${menuId}-${menus.id}`" class="cursor">
           <input
             type="checkbox"
             :id="`${menuId}-${menus.id}`"
             v-model="menusCheck"
             :value="menus.name"
-            @change="onClickParent"
+            @change="onClickParent(menus.name)"
           />
           {{ menus.name }}
         </label>
@@ -24,20 +28,23 @@
           v-for="(menu, children) in menus.children"
           :key="children"
         >
-          <label :for="`${menuId}-${menu.id}`">
+          <label
+            :for="`${menuId}-${menu.id}`"
+            :class="disableChild | filterDisable"
+          >
             <input
               type="checkbox"
               :id="`${menuId}-${menu.id}`"
               v-model="menuCheck"
               :value="menu.name"
-              v-show="!disableChild"
-              @change="onClickChildren"
+              v-if="!disableChild"
+              @change="onClickChildren(menu.name)"
             />
             {{ menu.name }}
             <span
               v-if="menu.price"
               class="price"
-              :class="[menu.salePrice ? 'discount' : '']"
+              :class="menu.salePrice | filterDiscount"
               >{{ menu.price | filterPrice }} 원</span
             >
             <span v-if="menu.salePrice" class="sale"
@@ -52,7 +59,7 @@
 
 <script>
 export default {
-  name: "Home",
+  name: "MenuPicker",
   props: {
     menus: {
       type: Array
@@ -78,6 +85,15 @@ export default {
     },
     filterPrice(list) {
       return list.toString().replace(/\B(?=(\d{3})+(?!\d))/g, ",");
+    },
+    filterDisable(disable) {
+      return disable ? "" : "cursor";
+    },
+    filterArrow(arrow) {
+      return arrow ? "select-up" : "select-down";
+    },
+    filterDiscount(price) {
+      return price ? "discount" : "";
     }
   },
   created() {
@@ -92,16 +108,8 @@ export default {
         }
         return list;
       });
-      // return menuList.reduce((acc, list) => {
-      //   list.checked = false;
-      //   if (list.children && list.children.length) {
-      //     acc = [...acc, ...this.setFilterList(list.children)];
-      //   }
-      //   return acc;
-      // }, []);
     },
     setDefaultList() {
-      console.log(this.menus);
       const menuList = this.menus.reduce((acc, menu) => {
         if (menu.parentId === null) {
           const children = this.menus
@@ -116,7 +124,6 @@ export default {
         }
         return acc;
       }, []);
-      console.log(menuList);
       const resultList = this.setSortList(menuList);
       return resultList;
     },
@@ -147,10 +154,28 @@ export default {
         return acc;
       }, []);
     },
+    setMenuCheck() {
+      const activeMenu = this.menuCheck
+        .reduce((acc, menu) => {
+          const result = this.menus.filter(list => list.name === menu);
+          acc.push(...result);
+          return acc;
+        }, [])
+        .map(item => {
+          item.checked = true;
+          return item.name;
+        });
+      const menu = new Set([
+        ...this.menusCheck,
+        ...activeMenu.join(",").split(",")
+      ]);
+      this.menusCheck = [...menu];
+      this.filterList = this.setFilterList(this.menuList);
+    },
     onShowMenu() {
       this.isMenu = !this.isMenu;
     },
-    onClickParent() {
+    onClickParent(parentName) {
       this.menuList = this.initMenuList(this.menuList);
       if (this.menusCheck && this.menusCheck.length) {
         const activeMenu = this.menusCheck
@@ -161,48 +186,64 @@ export default {
           }, [])
           .map(item => {
             item.checked = true;
-            return [
-              ...item.children.map(item => {
-                item.checked = true;
-                return item.name;
-              })
-            ];
+            if (item.name === parentName) {
+              return [
+                ...item.children.map(item => {
+                  return item.name;
+                })
+              ];
+            } else {
+              return [
+                ...item.children.map(item => {
+                  if (this.disableChild) {
+                    return item.name;
+                  }
+                  if (item.checked) {
+                    return item.name;
+                  }
+                })
+              ];
+            }
           });
-        console.log(activeMenu, "menu");
-        this.menuCheck = activeMenu.join(",").split(",");
+        if (this.disableChild) {
+          this.menuCheck = [];
+        }
+        let menu = new Set([
+          ...this.menuCheck,
+          ...activeMenu.join(",").split(",")
+        ]);
+
+        this.menuCheck = [...menu];
         this.filterList = [];
         this.filterList = this.setFilterList(this.menuList);
-      } else {
-        this.menusCheck = [];
-        this.menuCheck = [];
-        this.filterList = [];
-        // this.menuList = this.initMenuList(this.menuList);
+      }
+      if (this.menuCheck && this.menuCheck.length) {
+        this.setMenuCheck(parentName);
       }
     },
-    onClickChildren() {
+    onClickChildren(childrenName) {
       this.menuList = this.initMenuList(this.menuList);
-      if (this.menuCheck && this.menuCheck.length) {
-        const activeMenu = this.menuCheck
+      if (this.menusCheck && this.menusCheck.length) {
+        const activeMenu = this.menusCheck
           .reduce((acc, menu) => {
-            console.log(name);
-            const result = this.menus.filter(list => list.name === menu);
-            console.log(result, "menu");
+            const result = this.menuList.filter(list => list.name === menu);
             acc.push(...result);
             return acc;
           }, [])
           .map(item => {
             item.checked = true;
-            return item.name;
           });
-        console.log(activeMenu);
-        // this.menusCheck = activeMenu.join(",").split(",");
+
+        const menu = new Set([
+          ...this.menuCheck,
+          ...activeMenu.join(",").split(",")
+        ]);
+        this.menuCheck = [...menu];
         this.filterList = [];
         this.filterList = this.setFilterList(this.menuList);
-      } else {
-        this.menusCheck = [];
-        this.menuCheck = [];
-        this.filterList = [];
-        // this.menuList = this.initMenuList(this.menuList);
+      }
+      if (this.menuCheck && this.menuCheck.length) {
+        this.setMenuCheck(childrenName);
       }
     }
   }
@@ -210,7 +251,7 @@ export default {
 </script>
 
 <style>
-label {
+.cursor {
   display: block;
   width: 100%;
   cursor: pointer;
@@ -220,6 +261,24 @@ label {
   margin: 1em 1em;
   text-align: left;
   z-index: 0;
+}
+.menu-arrow {
+  position: relative;
+}
+.menu-arrow:after {
+  content: "▼";
+  display: inline-block;
+  position: absolute;
+  right: 1em;
+  top: 0.5em;
+  line-height: 1em;
+  transition: 0.3s linear;
+}
+.select-down:after {
+  transform: rotate(0deg);
+}
+.select-up:after {
+  transform: rotate(180deg);
 }
 .list-menu {
   width: 100%;
@@ -242,11 +301,11 @@ label {
   background: #fff;
 }
 .parent-menu {
-  padding: 5px 10px;
+  padding: 5px 1em;
   text-align: left;
 }
 .children-menu {
-  padding: 5px 10px;
+  padding: 5px 1.4em;
 }
 .price {
   margin-right: 1em;

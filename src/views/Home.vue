@@ -8,7 +8,6 @@
 </template>
 
 <script>
-// @ is an alias to /src
 import MenuPicker from "@/components/MenuPicker.vue";
 
 export default {
@@ -161,7 +160,12 @@ export default {
 
 <style>
 @import url("../assets/css/reset.css");
-
+#menus {
+  text-align: left;
+}
+#menus h1 {
+  margin: 2em 1em 0;
+}
 #menus #menu1 {
   z-index: 10;
 }
